@@ -1,47 +1,33 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html><html><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#2563EB">
-<title>Dashboard | MediSphere</title>
-<link rel="icon" type="image/png" href="favicon.png">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<title>Dashboard — MediSphere</title>
+<script src="[cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+<script src="[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/chart.js)"></script>
 <link rel="stylesheet" href="assets/css/style.css">
-</head><body class="hero-bg">
-
-<div class="glow" style="top:-100px;right:-100px;"></div>
-<div class="glow" style="bottom:-120px;left:-120px;"></div>
-
+</head><body>
 <div id="header"></div>
-
-<main class="page" style="max-width:1100px;margin:0 auto;padding:18px;position:relative;z-index:1;">
-  <div class="welcome-banner" style="margin-bottom:18px;">
-    <div style="font-size:13px;opacity:0.9;">Welcome back 👋</div>
-    <div id="welcome" style="font-size:26px;font-weight:700;margin-top:4px;">Loading…</div>
-    <div id="role-line" style="font-size:13px;opacity:0.85;margin-top:6px;"></div>
+<main style="max-width:1100px;margin:0 auto;padding:18px;">
+  <div class="glass" style="padding:24px;margin-bottom:18px;">
+    <div style="font-size:13px;color:var(--muted);">Welcome back</div>
+    <div id="welcome" style="font-size:24px;font-weight:700;" class="gradient-text">Loading…</div>
+    <div id="role-line" style="font-size:13px;color:var(--muted);margin-top:4px;"></div>
   </div>
-
-  <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;"></div>
+  <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;"></div>
   <div id="extras" style="margin-top:18px;"></div>
 </main>
-
 <div id="nav"></div>
-
 <script src="assets/js/app.js"></script>
 <script>
 const u = Auth.require(); if (u) init();
 
-function statCard(label, value, icon, color = 'blue') {
-  return `<div class="stat-card">
-    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;color:var(--muted);font-weight:500;">${label}</div>
-        <div style="font-size:24px;font-weight:700;margin-top:4px;color:var(--text);">${value}</div>
+function statCard(label, value, icon, color='blue') {
+  return `<div class="card" style="padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12px;color:var(--muted);">${label}</div>
+        <div style="font-size:26px;font-weight:700;margin-top:4px;">${value}</div>
       </div>
-      <div class="stat-icon stat-icon-${color}"><i class="fa-solid ${icon}"></i></div>
+      <div style="font-size:28px;">${icon}</div>
     </div>
   </div>`;
 }
@@ -50,140 +36,83 @@ async function init() {
   document.getElementById('header').innerHTML = renderHeader('Dashboard');
   document.getElementById('nav').innerHTML = renderBottomNav('dashboard.html');
   document.getElementById('welcome').textContent = u.full_name;
-  document.getElementById('role-line').innerHTML =
-    `<i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i>${u.role.toUpperCase()} • ${u.user_code}`;
+  document.getElementById('role-line').textContent = `${u.role.toUpperCase()} • ${u.user_code}`;
 
-  try {
-    if (u.role === 'patient')      await patientDash();
-    else if (u.role === 'doctor')  await doctorDash();
-    else                            await adminDash();
-  } catch (e) {
-    toast(e.message, 'error');
-  }
+  if (u.role === 'patient')      await patientDash();
+  else if (u.role === 'doctor')  await doctorDash();
+  else                            await adminDash();
 }
 
 async function patientDash() {
   const cards = document.getElementById('cards');
-  cards.innerHTML = skeletonCards(6, 100);
-
+  cards.innerHTML = Array(6).fill('<div class="skeleton" style="height:100px;"></div>').join('');
   const [appts, presc, reports, reminders, adh, notif] = await Promise.all([
-    api('/appointments').catch(() => []),
-    api('/prescriptions').catch(() => []),
-    api('/reports').catch(() => []),
-    api('/reminders').catch(() => []),
-    api('/adherence').catch(() => ({ weekly: 0 })),
-    api('/notifications').catch(() => [])
+    api('/appointments'), api('/prescriptions'), api('/reports'),
+    api('/reminders'), api('/adherence'), api('/notifications')
   ]);
-
   cards.innerHTML = [
-    statCard('Appointments', appts.length, 'fa-calendar-check', 'blue'),
-    statCard('Prescriptions', presc.length, 'fa-prescription', 'purple'),
-    statCard('Lab Reports', reports.length, 'fa-flask', 'cyan'),
-    statCard('Reminders', reminders.length, 'fa-clock', 'orange'),
-    statCard('Adherence', (adh.weekly || 0) + '%', 'fa-circle-check', 'green'),
-    statCard('Unread', notif.filter(n => !n.is_read).length, 'fa-bell', 'red')
+    statCard('Appointments', appts.length, '📅'),
+    statCard('Prescriptions', presc.length, '💊'),
+    statCard('Lab Reports', reports.length, '📋'),
+    statCard('Active Reminders', reminders.length, '⏰'),
+    statCard('Adherence (week)', adh.weekly + '%', '✅'),
+    statCard('Unread Notifs', notif.filter(n => !n.is_read).length, '🔔'),
   ].join('');
 
   document.getElementById('extras').innerHTML = `
-    <div class="card" style="padding:20px;margin-top:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;">
-          <i class="fa-solid fa-calendar-day" style="color:var(--primary);"></i> Upcoming Appointments
-        </h3>
-        <a href="appointments.html" style="color:var(--primary);font-size:13px;font-weight:600;text-decoration:none;">
-          View all <i class="fa-solid fa-arrow-right" style="font-size:11px;"></i>
-        </a>
+    <div class="card" style="padding:18px;margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="font-weight:700;">Upcoming Appointments</h3>
+        <a href="appointments.html" style="color:var(--primary);font-size:13px;">View all →</a>
       </div>
-      ${appts.slice(0, 3).map(a => `
-        <div style="padding:14px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;gap:12px;align-items:center;">
-            <div style="width:42px;height:42px;border-radius:12px;background:#eff6ff;color:var(--primary);display:flex;align-items:center;justify-content:center;">
-              <i class="fa-solid fa-user-doctor"></i>
-            </div>
-            <div>
-              <div style="font-weight:600;">${a.doctor_name || 'Doctor'}</div>
-              <div style="font-size:12px;color:var(--muted);">${fmtDate(a.appointment_date)} • ${a.appointment_time}</div>
-            </div>
+      ${appts.slice(0,3).map(a => `
+        <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+          <div>
+            <div style="font-weight:600;">${a.doctor_name || 'Doctor'}</div>
+            <div style="font-size:12px;color:var(--muted);">${fmtDate(a.appointment_date)} at ${a.appointment_time}</div>
           </div>
-          <span class="badge badge-${a.status === 'completed' ? 'green' : a.status === 'cancelled' ? 'red' : 'blue'}">${a.status}</span>
-        </div>`).join('') || emptyState('fa-calendar-xmark', 'No appointments', 'Book your first appointment to get started')}
+          <span class="badge badge-${a.status==='completed'?'green':a.status==='cancelled'?'red':'blue'}">${a.status}</span>
+        </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:20px;">No appointments yet</p>'}
     </div>`;
 }
 
 async function doctorDash() {
   const cards = document.getElementById('cards');
-  cards.innerHTML = skeletonCards(4, 100);
-
+  cards.innerHTML = Array(4).fill('<div class="skeleton" style="height:100px;"></div>').join('');
   const [patients, appts, presc] = await Promise.all([
-    api('/patients').catch(() => []),
-    api('/appointments').catch(() => []),
-    api('/prescriptions').catch(() => [])
+    api('/patients'), api('/appointments'), api('/prescriptions')
   ]);
-
-  const today = new Date().toISOString().slice(0, 10);
   cards.innerHTML = [
-    statCard('Patients', patients.length, 'fa-users', 'blue'),
-    statCard('Appointments', appts.length, 'fa-calendar-check', 'purple'),
-    statCard('Prescriptions', presc.length, 'fa-prescription', 'green'),
-    statCard("Today's Visits", appts.filter(a => a.appointment_date === today).length, 'fa-stethoscope', 'orange')
+    statCard('Patients', patients.length, '👥'),
+    statCard('Appointments', appts.length, '📅'),
+    statCard('Prescriptions Issued', presc.length, '💊'),
+    statCard('Today', appts.filter(a => a.appointment_date === new Date().toISOString().slice(0,10)).length, '⏱️'),
   ].join('');
-
-  const todays = appts.filter(a => a.appointment_date === today).slice(0, 5);
-  document.getElementById('extras').innerHTML = `
-    <div class="card" style="padding:20px;margin-top:14px;">
-      <h3 style="font-weight:700;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-        <i class="fa-solid fa-clock" style="color:var(--primary);"></i> Today's Schedule
-      </h3>
-      ${todays.map(a => `
-        <div style="padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-weight:600;">${a.patient_name || 'Patient'}</div>
-            <div style="font-size:12px;color:var(--muted);">${a.appointment_time} • ${a.reason || 'Consultation'}</div>
-          </div>
-          <span class="badge badge-${a.status === 'completed' ? 'green' : 'blue'}">${a.status}</span>
-        </div>`).join('') || emptyState('fa-mug-hot', 'Clear day ahead', 'No appointments scheduled for today')}
-    </div>`;
 }
 
 async function adminDash() {
   const cards = document.getElementById('cards');
-  cards.innerHTML = skeletonCards(6, 100);
-
-  const stats = await api('/admin/stats').catch(() => ({}));
-
+  cards.innerHTML = Array(6).fill('<div class="skeleton" style="height:100px;"></div>').join('');
+  const stats = await api('/admin/stats');
   cards.innerHTML = [
-    statCard('Patients', stats.total_patients || 0, 'fa-user', 'blue'),
-    statCard('Doctors', stats.total_doctors || 0, 'fa-user-doctor', 'green'),
-    statCard('Appointments', stats.total_appointments || 0, 'fa-calendar-check', 'purple'),
-    statCard('Records', stats.total_records || 0, 'fa-folder-open', 'cyan'),
-    statCard('Reports', stats.total_reports || 0, 'fa-flask', 'orange'),
-    statCard('Prescriptions', stats.total_prescriptions || 0, 'fa-prescription', 'red')
+    statCard('Total Patients', stats.total_patients, '👤'),
+    statCard('Total Doctors', stats.total_doctors, '🩺'),
+    statCard('Appointments', stats.total_appointments, '📅'),
+    statCard('Records', stats.total_records, '📋'),
+    statCard('Reports', stats.total_reports, '🧪'),
+    statCard('Prescriptions', stats.total_prescriptions, '💊'),
   ].join('');
 
   document.getElementById('extras').innerHTML = `
-    <div class="card" style="padding:20px;margin-top:14px;">
-      <h3 style="font-weight:700;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-        <i class="fa-solid fa-chart-column" style="color:var(--primary);"></i> Platform Overview
-      </h3>
+    <div class="card" style="padding:18px;margin-top:14px;">
+      <h3 style="font-weight:700;margin-bottom:12px;">Platform Overview</h3>
       <canvas id="chart" height="100"></canvas>
     </div>`;
-
   new Chart(document.getElementById('chart'), {
     type: 'bar',
-    data: {
-      labels: ['Patients', 'Doctors', 'Appts', 'Records', 'Reports', 'Rx'],
-      datasets: [{
-        data: [stats.total_patients || 0, stats.total_doctors || 0, stats.total_appointments || 0,
-               stats.total_records || 0, stats.total_reports || 0, stats.total_prescriptions || 0],
-        backgroundColor: 'rgba(37,99,235,0.85)',
-        borderRadius: 8,
-        borderSkipped: false
-      }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
-    }
+    data: { labels: ['Patients','Doctors','Appts','Records','Reports','Rx'],
+      datasets: [{ data: [stats.total_patients, stats.total_doctors, stats.total_appointments, stats.total_records, stats.total_reports, stats.total_prescriptions], backgroundColor: '#2563EB', borderRadius: 8 }]},
+    options: { plugins: { legend: { display: false } } }
   });
 }
 </script>
