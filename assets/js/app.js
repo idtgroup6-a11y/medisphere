@@ -1,0 +1,186 @@
+// ──────────────────────────────────────────────
+// MediSphere shared utilities
+// ──────────────────────────────────────────────
+const API_BASE = window.MEDISPHERE_API || "https://medisphere-1.onrender.com/api";
+
+// ── Auth helper ─────────────────────────────
+const Auth = {
+  token: () => localStorage.getItem("ms_token"),
+  user:  () => { try { return JSON.parse(localStorage.getItem("ms_user") || "null"); } catch { return null; } },
+  logout: () => {
+    ["ms_token","ms_user","ms_name","ms_code","ms_role"].forEach(k => localStorage.removeItem(k));
+    window.location.href = "login.html";
+  },
+  require: (roles) => {
+    const t = Auth.token(), u = Auth.user();
+    if (!t || !u) { window.location.href = "login.html"; return null; }
+    if (roles && !roles.includes(u.role)) {
+      toast("Access denied", "error");
+      setTimeout(() => window.location.href = "dashboard.html", 1200);
+      return null;
+    }
+    return u;
+  }
+};
+
+// ── API caller with token ───────────────────
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  const token = Auth.token();
+  if (token) headers.Authorization = "Bearer " + token;
+
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method: opts.method || (opts.body ? "POST" : "GET"),
+      headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      cache: "no-store",
+      mode: "cors"
+    });
+  } catch (e) {
+    throw new Error("Network error. Check your connection.");
+  }
+
+  if (res.status === 401) { Auth.logout(); throw new Error("Session expired"); }
+
+  let data = {};
+  try { data = await res.json(); } catch (_) {}
+
+  if (!res.ok || (data && data.success === false)) {
+    throw new Error((data && data.error) || `Request failed (${res.status})`);
+  }
+  return data.data !== undefined ? data.data : data;
+}
+
+// ── Toast ────────────────────────────────────
+function toast(msg, type = "info") {
+  let t = document.getElementById("ms-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "ms-toast";
+    t.className = "toast";
+    document.body.appendChild(t);
+  }
+  const icons = { success:"fa-circle-check", error:"fa-circle-xmark", info:"fa-circle-info" };
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${msg}`;
+  requestAnimationFrame(() => t.classList.add("show"));
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ── Date helpers ─────────────────────────────
+function fmtDate(d) {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+  } catch { return d; }
+}
+function fmtDateTime(d) {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleString("en-IN", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+  } catch { return d; }
+}
+
+// ── Header ───────────────────────────────────
+function renderHeader(title = "MediSphere") {
+  const u = Auth.user();
+  return `
+    <header class="app-header">
+      <div class="logo-wrap">
+        <div class="logo">M</div>
+        <div>
+          <div class="title">${title}</div>
+          <div class="subtitle">${u ? u.user_code : "Smart Healthcare"}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" title="Notifications" onclick="location.href='notifications.html'">
+          <i class="fa-regular fa-bell"></i>
+        </button>
+        <button class="icon-btn" title="Logout" onclick="if(confirm('Log out of MediSphere?')) Auth.logout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+  `;
+}
+
+// ── Bottom nav ───────────────────────────────
+function renderBottomNav(active) {
+  const u = Auth.user();
+  if (!u) return "";
+  const role = u.role;
+
+  const items = {
+    patient: [
+      { href:"dashboard.html",     icon:"fa-house",          label:"Home" },
+      { href:"appointments.html",  icon:"fa-calendar-check", label:"Appts" },
+      { href:"prescriptions.html", icon:"fa-prescription",   label:"Rx" },
+      { href:"reminders.html",     icon:"fa-clock",          label:"Meds" },
+      { href:"profile.html",       icon:"fa-user",           label:"Profile" }
+    ],
+    doctor: [
+      { href:"dashboard.html",     icon:"fa-house",        label:"Home" },
+      { href:"patients.html",      icon:"fa-users",        label:"Patients" },
+      { href:"appointments.html",  icon:"fa-calendar-check", label:"Appts" },
+      { href:"prescriptions.html", icon:"fa-prescription", label:"Rx" },
+      { href:"profile.html",       icon:"fa-user",         label:"Profile" }
+    ],
+    admin: [
+      { href:"dashboard.html",     icon:"fa-house",        label:"Home" },
+      { href:"patients.html",      icon:"fa-users",        label:"Patients" },
+      { href:"appointments.html",  icon:"fa-calendar-check", label:"Appts" },
+      { href:"reports.html",       icon:"fa-flask",        label:"Reports" },
+      { href:"profile.html",       icon:"fa-user",         label:"Profile" }
+    ]
+  };
+
+  return `<nav class="bottom-nav">
+    ${(items[role] || items.patient).map(i =>
+      `<a href="${i.href}" class="${active === i.href ? "active" : ""}">
+         <i class="fa-solid ${i.icon}"></i><span>${i.label}</span>
+       </a>`).join("")}
+  </nav>`;
+}
+
+// ── Modal helpers ────────────────────────────
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.add("open");
+}
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove("open");
+}
+
+// ── Inline notice ────────────────────────────
+function showNotice(targetId, kind, html) {
+  const n = document.getElementById(targetId);
+  if (!n) return;
+  const cls = { info:"notice-info", warn:"notice-warn", err:"notice-err", ok:"notice-ok" };
+  n.className = "notice " + (cls[kind] || cls.info);
+  const icons = { info:"fa-circle-info", warn:"fa-circle-exclamation", err:"fa-circle-xmark", ok:"fa-circle-check" };
+  n.innerHTML = `<i class="fa-solid ${icons[kind] || icons.info} mt-0.5"></i><div>${html}</div>`;
+  n.style.display = "flex";
+}
+function clearNotice(targetId) {
+  const n = document.getElementById(targetId);
+  if (n) { n.style.display = "none"; n.innerHTML = ""; }
+}
+
+// ── Skeleton helper ──────────────────────────
+function skeletonCards(count = 4, height = 100) {
+  return Array(count).fill(`<div class="skeleton" style="height:${height}px;"></div>`).join("");
+}
+
+// ── Empty state ──────────────────────────────
+function emptyState(icon, title, desc) {
+  return `<div class="empty-state">
+    <div class="empty-icon"><i class="fa-solid ${icon}"></i></div>
+    <h3>${title}</h3>
+    <p>${desc || ""}</p>
+  </div>`;
+}
