@@ -1,0 +1,181 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563EB">
+<title>Appointments | MediSphere</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head><body class="hero-bg">
+
+<div class="glow" style="top:-100px;right:-100px;"></div>
+<div id="header"></div>
+
+<main class="page" style="max-width:900px;margin:0 auto;padding:18px;position:relative;z-index:1;">
+  <h2 class="page-title">📅 Appointments</h2>
+  <p class="page-subtitle">Manage your medical appointments</p>
+
+  <div class="search-wrap">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input id="search" class="input" placeholder="Search by doctor or patient…">
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<button class="fab" id="fab" title="New appointment"><i class="fa-solid fa-plus"></i></button>
+
+<div id="nav"></div>
+
+<!-- Modal -->
+<div id="modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-calendar-plus" style="color:var(--primary);"></i> Book Appointment</div>
+      <button class="modal-close" onclick="closeModal('modal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modalNotice" style="display:none;"></div>
+    <form id="apForm" style="display:flex;flex-direction:column;gap:12px;" autocomplete="off">
+      <div class="input-wrap">
+        <i class="fa-solid fa-user-doctor field-icon"></i>
+        <select id="other_id" class="input" required></select>
+      </div>
+      <div class="input-wrap">
+        <i class="fa-solid fa-calendar field-icon"></i>
+        <input id="appointment_date" type="date" class="input" required>
+      </div>
+      <div class="input-wrap">
+        <i class="fa-solid fa-clock field-icon"></i>
+        <input id="appointment_time" type="time" class="input" required>
+      </div>
+      <div class="input-wrap">
+        <i class="fa-solid fa-notes-medical field-icon"></i>
+        <input id="reason" class="input" placeholder="Reason for visit">
+      </div>
+      <textarea id="notes" class="input" placeholder="Additional notes (optional)"></textarea>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button type="button" class="btn-ghost" onclick="closeModal('modal')" style="flex:1;">Cancel</button>
+        <button class="btn-primary" type="submit" style="flex:1;">
+          <i class="fa-solid fa-check"></i> Book
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const u = Auth.require(); if (u) init();
+let allAppts = [];
+
+async function init() {
+  document.getElementById('header').innerHTML = renderHeader('Appointments');
+  document.getElementById('nav').innerHTML = renderBottomNav('appointments.html');
+  await Promise.all([loadList(), loadCounterparts()]);
+  document.getElementById('search').addEventListener('input', render);
+}
+
+async function loadList() {
+  const list = document.getElementById('list');
+  list.innerHTML = skeletonCards(3, 90);
+  try {
+    allAppts = await api('/appointments');
+    render();
+  } catch (e) {
+    list.innerHTML = emptyState('fa-triangle-exclamation', 'Could not load appointments', e.message);
+  }
+}
+
+function render() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const filtered = allAppts.filter(a =>
+    !q || (a.doctor_name || '').toLowerCase().includes(q) || (a.patient_name || '').toLowerCase().includes(q)
+  );
+  const list = document.getElementById('list');
+  if (!filtered.length) {
+    list.innerHTML = emptyState('fa-calendar-xmark', 'No appointments yet', 'Tap + to book your first appointment');
+    return;
+  }
+  list.innerHTML = filtered.map(a => {
+    const counter = u.role === 'patient' ? `Dr. ${a.doctor_name}` : a.patient_name;
+    const statusColor = a.status === 'completed' ? 'green' : a.status === 'cancelled' ? 'red' : a.status === 'confirmed' ? 'green' : 'blue';
+    return `
+      <div class="card" style="padding:16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
+          <div style="display:flex;gap:12px;align-items:start;flex:1;">
+            <div style="width:46px;height:46px;border-radius:12px;background:#eff6ff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;">
+              <i class="fa-solid fa-${u.role === 'patient' ? 'user-doctor' : 'user'}"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:600;">${counter || 'Unknown'}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+                <i class="fa-regular fa-calendar"></i> ${fmtDate(a.appointment_date)} •
+                <i class="fa-regular fa-clock"></i> ${a.appointment_time}
+              </div>
+              ${a.reason ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;"><i class="fa-solid fa-notes-medical"></i> ${a.reason}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+            <span class="badge badge-${statusColor}">${a.status}</span>
+            ${a.status === 'pending' || a.status === 'confirmed' ? `
+              <button class="btn-danger" onclick="cancelAppt('${a.id}')">Cancel</button>
+            ` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function loadCounterparts() {
+  try {
+    const list = u.role === 'patient' ? await api('/doctors') : await api('/patients');
+    const sel = document.getElementById('other_id');
+    sel.innerHTML = `<option value="">Select ${u.role === 'patient' ? 'Doctor' : 'Patient'}</option>` +
+      list.map(p => `<option value="${p.id}">${p.full_name} (${p.user_code})</option>`).join('');
+  } catch (e) {
+    toast('Could not load list: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('fab').onclick = () => openModal('modal');
+
+document.getElementById('apForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearNotice('modalNotice');
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Booking...';
+  try {
+    const body = {
+      appointment_date: appointment_date.value,
+      appointment_time: appointment_time.value,
+      reason: reason.value,
+      notes: notes.value
+    };
+    if (u.role === 'patient') body.doctor_id = other_id.value;
+    else body.patient_id = other_id.value;
+
+    await api('/appointments', { method: 'POST', body });
+    toast('Appointment booked', 'success');
+    closeModal('modal');
+    e.target.reset();
+    loadList();
+  } catch (err) {
+    showNotice('modalNotice', 'err', err.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Book';
+  }
+});
+
+async function cancelAppt(id) {
+  if (!confirm('Cancel this appointment?')) return;
+  try {
+    await api('/appointments/' + id, { method: 'PATCH', body: { status: 'cancelled' } });
+    toast('Cancelled', 'info');
+    loadList();
+  } catch (e) { toast(e.message, 'error'); }
+}
+</script>
+</body></html>

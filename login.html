@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#2563EB"/>
+<title>Login | MediSphere</title>
+
+<link rel="icon" type="image/png" href="favicon.png"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+<style>
+*{font-family:'Poppins',sans-serif;margin:0;padding:0;box-sizing:border-box;}
+:root{--primary:#2563EB;--primary-dark:#1D4ED8;--bg:#f8fbff;--border:#e2e8f0;}
+body{background:var(--bg);overflow-x:hidden;color:#0f172a;min-height:100vh;}
+.glass{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+.hero-bg{background:radial-gradient(circle at top right,rgba(37,99,235,0.15),transparent 25%),radial-gradient(circle at bottom left,rgba(59,130,246,0.12),transparent 25%);}
+.glow{position:absolute;width:450px;height:450px;border-radius:999px;background:rgba(37,99,235,0.12);filter:blur(100px);z-index:0;pointer-events:none;}
+.input-field{width:100%;padding:16px 18px 16px 50px;border-radius:16px;background:white;border:1px solid var(--border);outline:none;font-size:15px;transition:.3s ease;}
+.input-field:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(37,99,235,0.1);}
+.input-wrap{position:relative;}
+.input-wrap i.field-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:16px;}
+.input-wrap .toggle-pw{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#64748b;cursor:pointer;padding:6px;}
+.card{transition:.3s ease;background:white;border:1px solid var(--border);}
+.tab-btn{flex:1;padding:12px;font-weight:600;font-size:14px;border-radius:12px;transition:.2s;color:#64748b;background:transparent;cursor:pointer;border:none;}
+.tab-btn.active{background:white;color:var(--primary);box-shadow:0 4px 12px rgba(37,99,235,0.1);}
+.role-pill{flex:1;padding:10px;font-weight:600;font-size:13px;border-radius:10px;transition:.2s;color:#64748b;background:#f1f5f9;cursor:pointer;border:1px solid transparent;}
+.role-pill.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-color:var(--primary);box-shadow:0 4px 12px rgba(37,99,235,0.25);}
+.notice{padding:12px 14px;border-radius:12px;font-size:13px;font-weight:500;display:flex;gap:10px;align-items:flex-start;}
+.notice-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
+.notice-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a;}
+.notice-err{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;}
+.notice-ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;}
+.notice button{background:transparent;border:none;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;}
+.link-btn{background:none;border:none;color:var(--primary);font-weight:600;font-size:13px;cursor:pointer;}
+.link-btn:hover{text-decoration:underline;}
+button:focus-visible,input:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+</style>
+</head>
+
+<body>
+
+<header class="fixed top-0 left-0 w-full h-16 z-50 bg-white/80 glass border-b border-slate-200 flex items-center justify-between px-4 md:px-10">
+  <div class="flex items-center gap-3">
+    <button type="button" onclick="window.location.href='index.html'" class="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 transition flex items-center justify-center">
+      <i class="fa-solid fa-arrow-left text-blue-700"></i>
+    </button>
+    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-200 text-white font-bold text-xl">M</div>
+    <div>
+      <h1 class="font-bold text-[18px] md:text-[20px] text-blue-700">MediSphere</h1>
+      <p class="text-[11px] text-slate-400 -mt-1">Smart Healthcare Platform</p>
+    </div>
+  </div>
+</header>
+
+<main class="relative hero-bg min-h-screen pt-24 pb-10 flex items-center justify-center px-4 overflow-hidden">
+  <div class="glow top-[-100px] right-[-100px]"></div>
+  <div class="glow bottom-[-120px] left-[-120px]"></div>
+
+  <div class="relative z-10 w-full max-w-md">
+    <div class="card rounded-3xl p-8 md:p-10 shadow-2xl">
+
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center gap-2 bg-blue-100 border border-blue-200 text-blue-700 px-4 py-1.5 rounded-full font-semibold text-xs mb-5">
+          🩺 Welcome
+        </div>
+        <h1 id="formTitle" class="text-[28px] font-extrabold tracking-[-1px] text-slate-900">
+          Sign in to MediSphere
+        </h1>
+        <p id="formSubtitle" class="text-slate-500 text-sm mt-2">
+          Access your health records securely
+        </p>
+      </div>
+
+      <!-- Auth Tabs (hidden in reset mode) -->
+      <div id="tabsWrap" class="flex gap-2 bg-slate-100 p-1.5 rounded-2xl mb-4">
+        <button type="button" id="tabLogin" class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button type="button" id="tabSignup" class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- Role selector -->
+      <div id="roleWrap" class="mb-4">
+        <p class="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">I am a</p>
+        <div class="flex gap-2">
+          <button type="button" class="role-pill active" data-role="patient" onclick="selectRole('patient')">
+            <i class="fa-solid fa-user mr-1"></i> Patient
+          </button>
+          <button type="button" class="role-pill" data-role="doctor" onclick="selectRole('doctor')">
+            <i class="fa-solid fa-user-doctor mr-1"></i> Doctor
+          </button>
+          <button type="button" class="role-pill" data-role="admin" onclick="selectRole('admin')">
+            <i class="fa-solid fa-shield-halved mr-1"></i> Admin
+          </button>
+        </div>
+      </div>
+
+      <!-- Inline notice -->
+      <div id="notice" class="hidden mb-4"></div>
+
+      <!-- Auth Form -->
+      <form id="authForm" class="space-y-4" autocomplete="off">
+        <div class="input-wrap" id="nameWrap" style="display:none;">
+          <i class="fa-solid fa-user field-icon"></i>
+          <input id="name" placeholder="Full Name" class="input-field" autocomplete="off"/>
+        </div>
+
+        <div class="input-wrap" id="emailWrap" style="display:none;">
+          <i class="fa-solid fa-envelope field-icon"></i>
+          <input id="email" type="email" placeholder="Email Address" class="input-field" autocomplete="off"/>
+        </div>
+
+        <div class="input-wrap" id="phoneWrap" style="display:none;">
+          <i class="fa-solid fa-phone field-icon"></i>
+          <input id="phone" type="tel" placeholder="+91XXXXXXXXXX" class="input-field" autocomplete="off"/>
+        </div>
+
+        <div class="input-wrap" id="identifierWrap">
+          <i class="fa-solid fa-id-card field-icon"></i>
+          <input id="identifier" placeholder="User ID / Email / Phone" required class="input-field" autocomplete="off"/>
+        </div>
+
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock field-icon"></i>
+          <input id="password" type="password" placeholder="Password" required minlength="6" class="input-field" autocomplete="off"/>
+          <span class="toggle-pw" onclick="togglePw('password',this)"><i class="fa-regular fa-eye"></i></span>
+        </div>
+
+        <div id="forgotRow" class="flex justify-end">
+          <button type="button" class="link-btn" onclick="enterResetMode()">Forgot password?</button>
+        </div>
+
+        <button id="submitBtn" type="submit" class="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-blue-100 hover:scale-[1.02] transition">
+          Login
+        </button>
+      </form>
+
+      <!-- Reset Form -->
+      <form id="resetForm" class="space-y-4 hidden" autocomplete="off">
+        <div class="notice notice-info">
+          <i class="fa-solid fa-circle-info mt-0.5"></i>
+          <div>Enter your User ID and registered phone to reset your password.</div>
+        </div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-id-card field-icon"></i>
+          <input id="resetCode" placeholder="User ID (e.g. PAT100001)" required class="input-field" autocomplete="off" style="text-transform:uppercase;"/>
+        </div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-phone field-icon"></i>
+          <input id="resetPhone" type="tel" placeholder="+91XXXXXXXXXX" required class="input-field" autocomplete="off"/>
+        </div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock field-icon"></i>
+          <input id="newPassword" type="password" placeholder="New Password" required minlength="6" class="input-field" autocomplete="off"/>
+          <span class="toggle-pw" onclick="togglePw('newPassword',this)"><i class="fa-regular fa-eye"></i></span>
+        </div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock field-icon"></i>
+          <input id="confirmPassword" type="password" placeholder="Confirm New Password" required minlength="6" class="input-field" autocomplete="off"/>
+          <span class="toggle-pw" onclick="togglePw('confirmPassword',this)"><i class="fa-regular fa-eye"></i></span>
+        </div>
+        <button id="resetBtn" type="submit" class="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-blue-100 hover:scale-[1.02] transition">
+          Reset Password
+        </button>
+        <button type="button" class="w-full text-slate-600 font-semibold text-sm py-2" onclick="exitResetMode()">← Back to login</button>
+      </form>
+
+      <p class="text-center text-xs text-slate-400 mt-6 leading-5">
+        By continuing, you agree to our <a href="terms.html" class="text-blue-700 font-semibold">Terms</a> &amp; <a href="privacy.html" class="text-blue-700 font-semibold">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-full text-sm font-semibold opacity-0 transition pointer-events-none z-[100] shadow-2xl"></div>
+
+<script>
+(function(){
+  // ─────────────────────────────────────────────
+  // CONFIG — change this to your backend URL
+  // ─────────────────────────────────────────────
+  const API = window.MEDISPHERE_API || "https://medisphere-1.onrender.com/api";
+
+  let mode = "login";          // 'login' | 'signup'
+  let selectedRole = "patient";
+  let identifierCheckTimer = null;
+  let emailCheckTimer = null;
+  let phoneCheckTimer = null;
+
+  const $ = id => document.getElementById(id);
+
+  const toast = msg => {
+    const t = $("toast");
+    t.innerText = msg;
+    t.classList.remove("opacity-0");
+    t.classList.add("opacity-100");
+    setTimeout(()=>{t.classList.add("opacity-0");t.classList.remove("opacity-100");},2800);
+  };
+
+  function showNotice(kind, html){
+    const n = $("notice");
+    const cls = {info:"notice-info", warn:"notice-warn", err:"notice-err", ok:"notice-ok"};
+    n.className = "mb-4 notice " + (cls[kind] || cls.info);
+    n.innerHTML = html;
+    n.classList.remove("hidden");
+  }
+  function clearNotice(){ const n = $("notice"); n.classList.add("hidden"); n.innerHTML = ""; }
+
+  window.togglePw = function(id, el){
+    const input = $(id);
+    if(!input) return;
+    if(input.type === "password"){
+      input.type = "text";
+      el.innerHTML = '<i class="fa-regular fa-eye-slash"></i>';
+    }else{
+      input.type = "password";
+      el.innerHTML = '<i class="fa-regular fa-eye"></i>';
+    }
+  };
+
+  async function call(path, body, method){
+    try{
+      const res = await fetch(API + path, {
+        method: method || (body ? "POST" : "GET"),
+        headers: body ? {"Content-Type":"application/json"} : {},
+        body: body ? JSON.stringify(body) : undefined,
+        cache: "no-store",
+        credentials: "omit",
+        mode: "cors"
+      });
+      let data = {};
+      try { data = await res.json(); } catch(_){}
+      return { ok: res.ok, status: res.status, data };
+    }catch(_){
+      return { ok:false, status:0, data:{} };
+    }
+  }
+
+  // Already logged in?
+  if(localStorage.getItem("ms_token")){
+    window.location.href = "dashboard.html";
+    return;
+  }
+
+  // ─────────────────────────────────────────────
+  // Tab + role switching
+  // ─────────────────────────────────────────────
+  window.switchTab = function(m){
+    mode = m;
+    clearNotice();
+
+    if(m === "signup"){
+      $("nameWrap").style.display = "block";
+      $("emailWrap").style.display = "block";
+      $("phoneWrap").style.display = "block";
+      $("identifierWrap").style.display = "none";
+      $("name").required = true;
+      $("email").required = true;
+      $("phone").required = true;
+      $("identifier").required = false;
+      $("forgotRow").style.display = "none";
+      $("submitBtn").innerText = "Create Account";
+      $("formTitle").innerText = "Create your account";
+      $("formSubtitle").innerText = "Join MediSphere and manage your health";
+      $("tabSignup").classList.add("active");
+      $("tabLogin").classList.remove("active");
+    }else{
+      $("nameWrap").style.display = "none";
+      $("emailWrap").style.display = "none";
+      $("phoneWrap").style.display = "none";
+      $("identifierWrap").style.display = "block";
+      $("name").required = false;
+      $("email").required = false;
+      $("phone").required = false;
+      $("identifier").required = true;
+      $("forgotRow").style.display = "flex";
+      $("submitBtn").innerText = "Login";
+      $("formTitle").innerText = "Sign in to MediSphere";
+      $("formSubtitle").innerText = "Access your health records securely";
+      $("tabLogin").classList.add("active");
+      $("tabSignup").classList.remove("active");
+    }
+  };
+
+  window.selectRole = function(role){
+    selectedRole = role;
+    document.querySelectorAll(".role-pill").forEach(p => {
+      p.classList.toggle("active", p.dataset.role === role);
+    });
+    clearNotice();
+  };
+
+  // ─────────────────────────────────────────────
+  // Live identifier check (login mode)
+  // ─────────────────────────────────────────────
+  $("identifier").addEventListener("input", e => {
+    if(mode !== "login") return;
+    clearNotice();
+    const raw = e.target.value.trim();
+    if(!raw || raw.length < 4) return;
+
+    clearTimeout(identifierCheckTimer);
+    identifierCheckTimer = setTimeout(async () => {
+      const r = await call("/auth/check-identifier", { identifier: raw, role: selectedRole });
+      if(!r.ok || !r.data || !r.data.success) return;
+      const exists = !!(r.data.data && r.data.data.exists);
+      if(!exists){
+        showNotice("info", `
+          <i class="fa-solid fa-circle-info mt-0.5"></i>
+          <div>
+            No ${selectedRole} account found with this ID.
+            <button type="button" onclick="switchTab('signup')">Create one</button>
+          </div>
+        `);
+      }
+    }, 450);
+  });
+
+  // ─────────────────────────────────────────────
+  // Live email + phone existence (signup mode)
+  // ─────────────────────────────────────────────
+  $("email").addEventListener("input", e => {
+    if(mode !== "signup") return;
+    clearNotice();
+    const v = e.target.value.trim();
+    if(!v || !v.includes("@")) return;
+    clearTimeout(emailCheckTimer);
+    emailCheckTimer = setTimeout(async () => {
+      const r = await call("/auth/check-availability", { email: v });
+      if(!r.ok || !r.data || !r.data.success) return;
+      if(r.data.data && r.data.data.email === "taken"){
+        showNotice("warn", `
+          <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+          <div>
+            An account with this email already exists.
+            <button type="button" onclick="switchTab('login')">Log in instead</button>
+          </div>
+        `);
+      }
+    }, 450);
+  });
+
+  $("phone").addEventListener("input", e => {
+    if(mode !== "signup") return;
+    clearNotice();
+    const v = e.target.value.trim();
+    if(!v || v.length < 8) return;
+    clearTimeout(phoneCheckTimer);
+    phoneCheckTimer = setTimeout(async () => {
+      const r = await call("/auth/check-availability", { phone: v });
+      if(!r.ok || !r.data || !r.data.success) return;
+      if(r.data.data && r.data.data.phone === "taken"){
+        showNotice("warn", `
+          <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+          <div>
+            An account with this phone already exists.
+            <button type="button" onclick="switchTab('login')">Log in instead</button>
+          </div>
+        `);
+      }
+    }, 450);
+  });
+
+  // ─────────────────────────────────────────────
+  // Save session
+  // ─────────────────────────────────────────────
+  function saveAuth(token, user){
+    if(token) localStorage.setItem("ms_token", token);
+    if(user){
+      localStorage.setItem("ms_user", JSON.stringify(user));
+      if(user.full_name) localStorage.setItem("ms_name", user.full_name);
+      if(user.user_code) localStorage.setItem("ms_code", user.user_code);
+      if(user.role) localStorage.setItem("ms_role", user.role);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // Submit login / signup
+  // ─────────────────────────────────────────────
+  $("authForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNotice();
+
+    const btn = $("submitBtn");
+    const original = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = mode === "login" ? "Signing in..." : "Creating account...";
+
+    let path, body;
+    if(mode === "login"){
+      const identifier = $("identifier").value.trim();
+      const password = $("password").value;
+      if(!identifier || !password){
+        toast("ID and password required");
+        btn.disabled = false; btn.innerText = original; return;
+      }
+      path = "/auth/login";
+      body = { identifier, password, role: selectedRole };
+    }else{
+      const name = $("name").value.trim();
+      const email = $("email").value.trim();
+      const phone = $("phone").value.trim();
+      const password = $("password").value;
+      if(!name || !email || !phone || !password){
+        toast("Please fill all fields");
+        btn.disabled = false; btn.innerText = original; return;
+      }
+      if(password.length < 6){
+        toast("Password must be at least 6 characters");
+        btn.disabled = false; btn.innerText = original; return;
+      }
+      path = "/auth/register";
+      body = { full_name: name, email, phone, password, role: selectedRole };
+    }
+
+    const r = await call(path, body);
+
+    if(r.ok && r.data && r.data.success){
+      const d = r.data.data || {};
+      saveAuth(d.token, d.user);
+      toast(mode === "login" ? "Welcome back 🚀" : `Account created! Your ID: ${d.user.user_code}`);
+      setTimeout(()=> window.location.href = "dashboard.html", 800);
+    }else{
+      const msg = (r.data && r.data.error) || (r.status === 0 ? "Network error. Check your connection." : "Something went wrong.");
+
+      if(r.status === 409 && mode === "signup"){
+        showNotice("warn", `
+          <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+          <div>
+            ${msg}
+            <button type="button" onclick="switchTab('login')">Log in instead</button>
+          </div>
+        `);
+      }else if(r.status === 404 && mode === "login"){
+        showNotice("info", `
+          <i class="fa-solid fa-circle-info mt-0.5"></i>
+          <div>
+            ${msg}
+            <button type="button" onclick="switchTab('signup')">Create one</button>
+          </div>
+        `);
+      }else if(r.status === 401 && mode === "login"){
+        showNotice("err", `
+          <i class="fa-solid fa-circle-xmark mt-0.5"></i>
+          <div>
+            Incorrect password.
+            <button type="button" onclick="enterResetMode()">Reset password</button>
+          </div>
+        `);
+      }else if(r.status === 403){
+        showNotice("err", `<i class="fa-solid fa-circle-xmark mt-0.5"></i><div>${msg}</div>`);
+      }else{
+        toast(msg);
+      }
+    }
+
+    btn.disabled = false;
+    btn.innerText = mode === "login" ? "Login" : "Create Account";
+  });
+
+  // ─────────────────────────────────────────────
+  // Forgot password flow
+  // ─────────────────────────────────────────────
+  window.enterResetMode = function(){
+    clearNotice();
+    $("authForm").classList.add("hidden");
+    $("tabsWrap").classList.add("hidden");
+    $("roleWrap").classList.add("hidden");
+    $("resetForm").classList.remove("hidden");
+    $("formTitle").innerText = "Reset your password";
+    $("formSubtitle").innerText = "Verify with your User ID and phone";
+  };
+
+  window.exitResetMode = function(){
+    clearNotice();
+    $("resetForm").classList.add("hidden");
+    $("authForm").classList.remove("hidden");
+    $("tabsWrap").classList.remove("hidden");
+    $("roleWrap").classList.remove("hidden");
+    switchTab("login");
+  };
+
+  $("resetForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNotice();
+
+    const user_code = $("resetCode").value.trim().toUpperCase();
+    const phone = $("resetPhone").value.trim();
+    const newPw = $("newPassword").value;
+    const confirmPw = $("confirmPassword").value;
+
+    if(!user_code || !phone || !newPw){
+      toast("All fields required"); return;
+    }
+    if(newPw.length < 6){
+      toast("Password must be at least 6 characters"); return;
+    }
+    if(newPw !== confirmPw){
+      showNotice("err", `<i class="fa-solid fa-circle-xmark mt-0.5"></i><div>Passwords do not match.</div>`);
+      return;
+    }
+
+    const btn = $("resetBtn");
+    btn.disabled = true;
+    btn.innerText = "Resetting...";
+
+    const r = await call("/auth/reset-password", {
+      user_code, phone, new_password: newPw, confirm_password: confirmPw
+    });
+
+    if(r.ok && r.data && r.data.success){
+      // Auto-login after reset
+      const r2 = await call("/auth/login", { identifier: user_code, password: newPw });
+      if(r2.ok && r2.data && r2.data.success){
+        const d2 = r2.data.data || {};
+        saveAuth(d2.token, d2.user);
+        toast("Password updated ✓");
+        setTimeout(()=> window.location.href = "dashboard.html", 800);
+      }else{
+        toast("Password updated. Please log in.");
+        exitResetMode();
+        $("identifier").value = user_code;
+      }
+    }else{
+      const msg = (r.data && r.data.error) || "Could not reset password.";
+      if(r.status === 404){
+        showNotice("info", `
+          <i class="fa-solid fa-circle-info mt-0.5"></i>
+          <div>
+            ${msg}
+            <button type="button" onclick="exitResetMode();switchTab('signup');">Create an account</button>
+          </div>
+        `);
+      }else{
+        showNotice("err", `<i class="fa-solid fa-circle-xmark mt-0.5"></i><div>${msg}</div>`);
+      }
+    }
+
+    btn.disabled = false;
+    btn.innerText = "Reset Password";
+  });
+
+  // Initialize
+  switchTab("login");
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563EB">
+<title>Patients | MediSphere</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head><body class="hero-bg">
+
+<div class="glow" style="top:-100px;right:-100px;"></div>
+<div id="header"></div>
+
+<main class="page" style="max-width:900px;margin:0 auto;padding:18px;position:relative;z-index:1;">
+  <h2 class="page-title">👥 Patients</h2>
+  <p class="page-subtitle">Manage and view patient records</p>
+
+  <div class="search-wrap">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input id="search" class="input" placeholder="Search by name or ID…">
+  </div>
+  <div id="list"></div>
+</main>
+
+<div id="nav"></div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const u = Auth.require(['doctor','admin']); if (u) init();
+let pts = [];
+
+async function init() {
+  document.getElementById('header').innerHTML = renderHeader('Patients');
+  document.getElementById('nav').innerHTML = renderBottomNav('patients.html');
+  const list = document.getElementById('list');
+  list.innerHTML = skeletonCards(4, 78);
+  try {
+    pts = await api('/patients');
+    render();
+  } catch (e) {
+    list.innerHTML = emptyState('fa-triangle-exclamation', 'Could not load', e.message);
+  }
+  document.getElementById('search').addEventListener('input', render);
+}
+
+function render() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const f = pts.filter(p => !q || p.full_name.toLowerCase().includes(q) || p.user_code.toLowerCase().includes(q));
+  const list = document.getElementById('list');
+  list.innerHTML = f.length ? f.map(p => `
+    <div class="card" style="padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;flex:1;">
+        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;">
+          ${(p.full_name || 'P').charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <div style="font-weight:600;">${p.full_name}</div>
+          <div style="font-size:12px;color:var(--muted);">${p.user_code} • ${p.profile?.blood_group || '—'} • ${p.gender || '—'}</div>
+        </div>
+      </div>
+      <a href="card.html?code=${p.user_code}" class="btn-ghost" style="padding:8px 14px;font-size:12px;text-decoration:none;">
+        <i class="fa-solid fa-eye"></i> View
+      </a>
+    </div>`).join('') : emptyState('fa-users-slash', 'No patients found', q ? 'Try a different search' : 'Patients will appear here');
+}
+</script>
+</body></html>

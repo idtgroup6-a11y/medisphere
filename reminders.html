@@ -1,0 +1,185 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563EB">
+<title>Reminders | MediSphere</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head><body class="hero-bg">
+
+<div class="glow" style="top:-100px;right:-100px;"></div>
+<div id="header"></div>
+
+<main class="page" style="max-width:900px;margin:0 auto;padding:18px;position:relative;z-index:1;">
+  <h2 class="page-title">⏰ Medication Reminders</h2>
+  <p class="page-subtitle">Track your adherence and never miss a dose</p>
+
+  <div id="adherence" class="card" style="padding:20px;margin-bottom:14px;"></div>
+  <div id="list"></div>
+</main>
+
+<button class="fab" id="fab"><i class="fa-solid fa-plus"></i></button>
+<div id="nav"></div>
+
+<div id="modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-clock" style="color:var(--primary);"></i> Add Reminder</div>
+      <button class="modal-close" onclick="closeModal('modal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modalNotice" style="display:none;"></div>
+    <form id="remForm" style="display:flex;flex-direction:column;gap:12px;" autocomplete="off">
+      <div class="input-wrap">
+        <i class="fa-solid fa-pills field-icon"></i>
+        <input id="medicine_name" class="input" placeholder="Medicine Name" required>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-wrap">
+          <i class="fa-solid fa-eye-dropper field-icon"></i>
+          <input id="dosage" class="input" placeholder="500mg">
+        </div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-repeat field-icon"></i>
+          <input id="frequency" class="input" placeholder="2x daily">
+        </div>
+      </div>
+      <div class="input-wrap">
+        <i class="fa-solid fa-clock field-icon"></i>
+        <input id="alarm_time" type="time" class="input" required>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <input id="start_date" type="date" class="input" placeholder="Start">
+        <input id="end_date" type="date" class="input" placeholder="End">
+      </div>
+      <textarea id="instructions" class="input" placeholder="Instructions (e.g. take with food)"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-ghost" onclick="closeModal('modal')" style="flex:1;">Cancel</button>
+        <button class="btn-primary" type="submit" style="flex:1;"><i class="fa-solid fa-check"></i> Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const u = Auth.require(['patient']); if (u) init();
+
+async function init() {
+  document.getElementById('header').innerHTML = renderHeader('Reminders');
+  document.getElementById('nav').innerHTML = renderBottomNav('reminders.html');
+  await Promise.all([loadAdherence(), loadList()]);
+}
+
+async function loadAdherence() {
+  try {
+    const a = await api('/adherence');
+    document.getElementById('adherence').innerHTML = `
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Adherence Score</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div style="text-align:center;padding:14px;background:#dcfce7;border-radius:14px;">
+          <div style="font-size:11px;color:#166534;font-weight:600;">DAILY</div>
+          <div style="font-size:24px;font-weight:700;color:var(--success);margin-top:4px;">${a.daily || 0}%</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#dbeafe;border-radius:14px;">
+          <div style="font-size:11px;color:#1e40af;font-weight:600;">WEEKLY</div>
+          <div style="font-size:24px;font-weight:700;color:var(--primary);margin-top:4px;">${a.weekly || 0}%</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#fef3c7;border-radius:14px;">
+          <div style="font-size:11px;color:#92400e;font-weight:600;">MONTHLY</div>
+          <div style="font-size:24px;font-weight:700;color:var(--warning);margin-top:4px;">${a.monthly || 0}%</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--muted);">
+        <span><i class="fa-solid fa-circle-check" style="color:var(--success);"></i> ${a.total_taken || 0} taken</span>
+        <span><i class="fa-solid fa-circle-xmark" style="color:var(--danger);"></i> ${a.total_missed || 0} missed</span>
+      </div>`;
+  } catch (e) {
+    document.getElementById('adherence').innerHTML = `<div style="color:var(--muted);text-align:center;">Adherence data unavailable</div>`;
+  }
+}
+
+async function loadList() {
+  const list = document.getElementById('list');
+  list.innerHTML = skeletonCards(3, 100);
+  try {
+    const items = await api('/reminders');
+    if (!items.length) {
+      list.innerHTML = emptyState('fa-pills', 'No reminders yet', 'Tap + to add your first medication reminder');
+      return;
+    }
+    list.innerHTML = items.map(r => `
+      <div class="card" style="padding:16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;">
+          <div style="display:flex;gap:12px;flex:1;">
+            <div style="width:46px;height:46px;border-radius:12px;background:#fed7aa;color:var(--warning);display:flex;align-items:center;justify-content:center;font-size:18px;">
+              <i class="fa-solid fa-pills"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:600;">${r.medicine_name}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+                ${r.dosage || '—'} • ${r.frequency || '—'} • <i class="fa-regular fa-clock"></i> ${r.alarm_time || '—'}
+              </div>
+              ${r.instructions ? `<div style="font-size:12px;margin-top:6px;color:var(--text);background:#f8fafc;padding:6px 10px;border-radius:8px;">${r.instructions}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="btn-primary" style="padding:6px 10px;font-size:11px;" onclick="logIt('${r.id}','taken')">
+              <i class="fa-solid fa-check"></i> Taken
+            </button>
+            <button class="btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="logIt('${r.id}','missed')">
+              <i class="fa-solid fa-xmark"></i> Missed
+            </button>
+            <button class="btn-danger" style="padding:6px 10px;font-size:11px;" onclick="del('${r.id}')">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = emptyState('fa-triangle-exclamation', 'Could not load', e.message);
+  }
+}
+
+document.getElementById('fab').onclick = () => openModal('modal');
+
+document.getElementById('remForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearNotice('modalNotice');
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    await api('/reminders', { method: 'POST', body: {
+      medicine_name: medicine_name.value, dosage: dosage.value, frequency: frequency.value,
+      alarm_time: alarm_time.value, start_date: start_date.value || null, end_date: end_date.value || null,
+      instructions: instructions.value
+    }});
+    toast('Reminder added', 'success');
+    closeModal('modal'); e.target.reset();
+    loadList();
+  } catch (err) { showNotice('modalNotice', 'err', err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save'; }
+});
+
+async function logIt(id, status) {
+  try {
+    await api(`/reminders/${id}/log`, { method: 'POST', body: { status }});
+    toast(status === 'taken' ? 'Marked taken ✓' : 'Marked missed', status === 'taken' ? 'success' : 'info');
+    loadAdherence();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function del(id) {
+  if (!confirm('Delete this reminder?')) return;
+  try {
+    await api('/reminders/' + id, { method: 'DELETE' });
+    toast('Deleted', 'info'); loadList();
+  } catch (e) { toast(e.message, 'error'); }
+}
+</script>
+</body></html>

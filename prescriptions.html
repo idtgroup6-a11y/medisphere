@@ -1,0 +1,164 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563EB">
+<title>Prescriptions | MediSphere</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head><body class="hero-bg">
+
+<div class="glow" style="top:-100px;right:-100px;"></div>
+<div id="header"></div>
+
+<main class="page" style="max-width:900px;margin:0 auto;padding:18px;position:relative;z-index:1;">
+  <h2 class="page-title">💊 Prescriptions</h2>
+  <p class="page-subtitle">Your medication history</p>
+  <div id="list"></div>
+</main>
+
+<button class="fab" id="fab" title="New prescription"><i class="fa-solid fa-plus"></i></button>
+<div id="nav"></div>
+
+<div id="modal" class="modal-overlay">
+  <div class="modal-content" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-prescription" style="color:var(--primary);"></i> Create Prescription</div>
+      <button class="modal-close" onclick="closeModal('modal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modalNotice" style="display:none;"></div>
+    <form id="rxForm" style="display:flex;flex-direction:column;gap:12px;" autocomplete="off">
+      <div class="input-wrap">
+        <i class="fa-solid fa-user field-icon"></i>
+        <select id="patient_id" class="input" required></select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:block;">Medicines</label>
+        <div id="meds"></div>
+        <button type="button" class="btn-ghost" onclick="addMed()" style="margin-top:6px;width:100%;">
+          <i class="fa-solid fa-plus"></i> Add Medicine
+        </button>
+      </div>
+      <textarea id="instructions" class="input" placeholder="General instructions"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-ghost" onclick="closeModal('modal')" style="flex:1;">Cancel</button>
+        <button class="btn-primary" type="submit" style="flex:1;"><i class="fa-solid fa-check"></i> Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const u = Auth.require(); if (u) init();
+
+async function init() {
+  document.getElementById('header').innerHTML = renderHeader('Prescriptions');
+  document.getElementById('nav').innerHTML = renderBottomNav('prescriptions.html');
+  if (u.role !== 'doctor') document.getElementById('fab').style.display = 'none';
+  await loadList();
+  if (u.role === 'doctor') { await loadPatients(); addMed(); }
+}
+
+async function loadList() {
+  const list = document.getElementById('list');
+  list.innerHTML = skeletonCards(3, 140);
+  try {
+    const data = await api('/prescriptions');
+    if (!data.length) {
+      list.innerHTML = emptyState('fa-prescription-bottle', 'No prescriptions', u.role === 'doctor' ? 'Tap + to create one' : 'Prescriptions will appear here');
+      return;
+    }
+    list.innerHTML = data.map(p => `
+      <div class="card" style="padding:18px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:10px;">
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;">
+              <i class="fa-solid fa-prescription"></i>
+            </div>
+            <div>
+              <div style="font-weight:600;">${u.role === 'patient' ? 'Dr. ' + (p.doctor_name || 'Doctor') : (p.patient_name || 'Patient')}</div>
+              <div style="font-size:12px;color:var(--muted);"><i class="fa-regular fa-clock"></i> ${fmtDateTime(p.issued_at)}</div>
+            </div>
+          </div>
+          <button class="btn-ghost" style="padding:8px 12px;font-size:12px;" onclick="downloadPdf('${p.id}')">
+            <i class="fa-solid fa-file-pdf"></i> PDF
+          </button>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+          ${(p.medicines || []).map(m => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px;">
+              <span style="font-weight:600;">${m.name}</span>
+              <span style="color:var(--muted);font-size:12px;">${m.dose || ''} • ${m.frequency || ''} • ${m.duration || ''}</span>
+            </div>`).join('')}
+        </div>
+        ${p.instructions ? `<div style="font-size:12px;color:var(--muted);margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;"><i class="fa-solid fa-circle-info"></i> ${p.instructions}</div>` : ''}
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = emptyState('fa-triangle-exclamation', 'Could not load', e.message);
+  }
+}
+
+async function loadPatients() {
+  try {
+    const pts = await api('/patients');
+    patient_id.innerHTML = '<option value="">Select Patient</option>' +
+      pts.map(p => `<option value="${p.id}">${p.full_name} (${p.user_code})</option>`).join('');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function addMed() {
+  const div = document.createElement('div');
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:6px;';
+  div.innerHTML = `
+    <input class="input m-name" placeholder="Medicine" style="padding:10px 12px;">
+    <input class="input m-dose" placeholder="Dose" style="padding:10px 12px;">
+    <input class="input m-freq" placeholder="Freq" style="padding:10px 12px;">
+    <input class="input m-dur" placeholder="Duration" style="padding:10px 12px;">
+    <button type="button" class="btn-danger" onclick="this.parentNode.remove()" style="padding:0 12px;"><i class="fa-solid fa-xmark"></i></button>`;
+  document.getElementById('meds').appendChild(div);
+}
+
+document.getElementById('fab').onclick = () => openModal('modal');
+
+document.getElementById('rxForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearNotice('modalNotice');
+  const meds = [...document.querySelectorAll('#meds > div')].map(d => ({
+    name: d.querySelector('.m-name').value,
+    dose: d.querySelector('.m-dose').value,
+    frequency: d.querySelector('.m-freq').value,
+    duration: d.querySelector('.m-dur').value
+  })).filter(m => m.name);
+
+  if (!meds.length) { showNotice('modalNotice', 'warn', 'Add at least one medicine'); return; }
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+  try {
+    await api('/prescriptions', { method: 'POST', body: {
+      patient_id: patient_id.value, medicines: meds, instructions: instructions.value
+    }});
+    toast('Prescription created', 'success');
+    closeModal('modal'); e.target.reset();
+    document.getElementById('meds').innerHTML = ''; addMed();
+    loadList();
+  } catch (err) { showNotice('modalNotice', 'err', err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Create'; }
+});
+
+async function downloadPdf(id) {
+  try {
+    const res = await fetch(`${API_BASE}/prescriptions/${id}/pdf`, { headers: { Authorization: 'Bearer ' + Auth.token() }});
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `prescription-${id}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { toast(e.message, 'error'); }
+}
+</script>
+</body></html>
